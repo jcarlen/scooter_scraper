@@ -41,6 +41,6 @@ tmp = fromJSON(file = "https://mds.bird.co/gbfs/santamonica/free_bikes")
 scoot_data = tmp[[3]]
 scoot_data = do.call("rbind", scoot_data[[1]])
 pull_time = gsub(as.character(Sys.time()), pattern = " |:", replacement = "_")
-write.csv(scoot_data, paste(Sys.getenv("HOME"), "/Users/janecarlen/Documents/scooters/SM_bird_data/SM_bird_", 
+write.csv(scoot_data, paste(Sys.getenv("HOME"), "/Documents/scooters/SM_bird_data/SM_bird_", 
                             pull_time, ".csv", sep = ""), row.names = F)
 
