@@ -17,12 +17,16 @@ library(cowplot)
 # map ----
 register_google(key = "AIzaSyAnUkysR7a3N20-dLLPZ3PPJX2j6BPhGt4")
 has_google_key()
-la_scoot_map = get_map(location = c(lon = median(scooter_data$LA_lime_data$lon),
-                                    lat = median(scooter_data$LA_lime_data$lat)), maptype = "roadmap")
+tryCatch({la_scoot_map = get_map(location = c(lon = median(scooter_data$LA_lime_data$lon),
+                                    lat = median(scooter_data$LA_lime_data$lat)), maptype = "roadmap")}, 
+         error = function(e) "Couldn't get map. Check API key and internet connection")
 
 # data ----
-scooter_data = lapply(list.dirs("~/Documents/scooters", recursive = F), function(folder) {
-  files = list.files(folder, full.names = T)
+scooter_dirs = list.dirs(paste0(Sys.getenv("HOME"),"/Documents/scooters"), recursive = F)
+scooter_dirs = scooter_dirs[!grepl(scooter_dirs, pattern = "/\\.")]
+
+scooter_data = lapply(scooter_dirs, function(folder) {
+  files = list.files(folder, full.names = T, include.dirs = FALSE, pattern = "csv")
   datas = lapply(files, function(x) {
     data = read.csv(x)
     time = str_extract(x, pattern = "[0-9]{4}.*[0-9]")
@@ -38,16 +42,16 @@ scooter_data = lapply(list.dirs("~/Documents/scooters", recursive = F), function
 })
 
 # systems have different numbers of columns bc lime has a vehicle type
-names(scooter_data) = list.dirs("~/Documents/scooters", recursive = F, full.names = F)
+names(scooter_data) = sapply(str_split(scooter_dirs, "/"), last)
   
 # plots ----
 
 # only scooters for lime
 lime_data = filter(scooter_data$LA_lime_data, vehicle_type == "scooter") %>%
-              mutate(period = cut(hour, breaks = c(0, 6,12,18), include.lowest = T))
+              mutate(period = cut(hour, breaks = c(0, 6,12, 18, 24), include.lowest = T))
 # combine bird LA and SM
 bird_data = rbind(scooter_data$LA_bird_data, scooter_data$SM_bird_data) %>%
-               mutate(period = cut(hour, breaks = c(0, 6,12,18), include.lowest = T))
+               mutate(period = cut(hour, breaks = c(0, 6,12, 18, 24), include.lowest = T))
 
 write.csv(lime_data, "~/Documents/scooters/sofar_lime_data.csv", row.names = F)
 write.csv(bird_data, "~/Documents/scooters/sofar_bird_data.csv", row.names = F)
@@ -88,75 +92,96 @@ ggsave('~/Documents/scooters/lime_bird_period.png',
        cowplot::plot_grid(lime_plot_period, bird_plot_period),
        height =4)
 
-  # individual scooter info ---- 
+# individual scooter info ---- 
 
-bird_data_id = bird_data %>% group_by(bike_id) %>% 
-  mutate(location_id = interaction(lat,lon)) %>%
-  summarize(location_changes = n() - n_distinct(location_id),
+#  ROUND lat/lon to 3 digits! ----
+#  means you have to go at least a couple blocks for it to be considered a move
+bird_data_id = bird_data  %>% group_by(bike_id) %>% 
+  mutate(location_id = interaction(round(lat,3),round(lon,3))) %>%
+  summarize(entries = n(),
+            location_changes = n_distinct(location_id),
             med_lat = median(lat),
             med_lon = median(lon))
 
 lime_data_id = lime_data %>% group_by(bike_id) %>% 
-  mutate(location_id = interaction(lat,lon)) %>%
-  summarize(location_changes = n() - n_distinct(location_id),
+  mutate(location_id = interaction(round(lat,3),round(lon,3))) %>%
+  summarize(entries = n(),
+            location_changes = n_distinct(location_id),
             med_lat = median(lat),
             med_lon = median(lon)) 
 
   # paths ----
-ggplot(bird_data %>% arrange(date, hour, minute) %>%
+ggplot(bird_data %>% arrange(date, hour, minute), # %>% filter(bike_id == "05ec7dad-989b-4ef6-827e-754a46cbc0d3"),
        aes(x = lon, y = lat, color = bike_id)) + 
        geom_line(size = .2) +
        theme_bw() +
        #xlim(-118.5, -118.4) + ylim(33.98, 34.1) + #santa monica and ucla
        guides(color = "none")
 
-ggplot(lime_data %>% arrange(date, hour, minute) %>%
+ggplot(lime_data %>% arrange(date, hour, minute),
        aes(x = lon, y = lat, color = bike_id)) + 
-  theme_bw() +
-  geom_line(size = .2) + 
-  #xlim(-118.5, -118.4) + ylim(33.98, 34.1) + #santa monica and ucla
-  guides(color = "none")
+       theme_bw() +
+       geom_line(size = .2) + 
+       #xlim(-118.5, -118.4) + ylim(33.98, 34.1) + #santa monica and ucla
+       guides(color = "none")
 
   # location changes  ----
 
-
-# highlight locations with frequent movers 
+# distribution of number of location chagnes by scooter
 
 lime_bird_loc_change_dist = plot_grid(
   
-  ggplot(bird_data_id) + 
-    geom_point(aes(y= med_lat, x = med_lon, size = location_changes,
-                   alpha = location_changes/max(location_changes)), 
-               shape = 22, fill = "skyblue", color = "black") +
-    scale_size_continuous(range = c(.2,4)) +
-    guides(alpha =  "none") + ggtitle("bird"),
+  ggplot(bird_data_id) + geom_histogram(aes(x = location_changes), fill = "skyblue", color = "black") + 
+    theme_bw() +
+    ggtitle("bird location changes per scooter"),
   
-  ggplot(lime_data_id) + 
-    geom_point(aes(y= med_lat, x = med_lon, size = location_changes,
-                   alpha = location_changes/max(location_changes)),
-               shape = 22, fill = "limegreen", color = "black") +
-    scale_size_continuous(range = c(.2,4)) +
-    guides(alpha =  "none") + ggtitle("lime")
+  ggplot(lime_data_id) + geom_histogram(aes(x = location_changes), fill = "limegreen", color = "black") +
+    theme_bw() +
+    ggtitle("lime location changes per scooter")
   
 )
 
 ggsave('~/Documents/scooters/lime_bird_loc_change_dist.png', lime_bird_loc_change_dist)
 
-lime_bird_loc_change_map = plot_grid(
-  
+# why are there so many bird ids that appear only once?
 
-  ggplot(bird_data_id) + geom_histogram(aes(x = location_changes),
-                                        fill = "skyblue", color = "black") + 
+lime_bird_n_entries_dist = plot_grid(
+  
+  ggplot(bird_data_id) + geom_histogram(aes(x = entries), fill = "skyblue", color = "black") + 
+    theme_bw() +
     ggtitle("bird location changes per scooter"),
   
-  ggplot(lime_data_id) + geom_histogram(aes(x = location_changes),
-                                        fill = "limegreen", color = "black") +
+  ggplot(lime_data_id) + geom_histogram(aes(x = entries), fill = "limegreen", color = "black") +
+    theme_bw() +
     ggtitle("lime location changes per scooter")
-
+  
 )
 
-ggsave('~/Documents/scooters/lime_bird_loc_change_map.png', lime_bird_loc_change_map)
+ggsave('~/Documents/scooters/lime_bird_n_entries_dist.png', lime_bird_n_entries_dist)
 
+# highlight locations with frequent movers 
+
+lime_bird_loc_change_map = plot_grid(
+  
+  ggplot(bird_data_id) + 
+    geom_point(aes(y= med_lat, x = med_lon, size = location_changes,
+                   alpha = location_changes/max(location_changes)), 
+               shape = 21, fill = "skyblue", color = "black", stroke = .2) +
+    scale_size_continuous(range = c(.2,4)) +
+    theme_bw() +
+    guides(alpha =  "none") + ggtitle(paste0("bird", " (unique IDs= ", n_distinct(bird_data$bike_id), ")")),
+  
+  ggplot(lime_data_id) + 
+    geom_point(aes(y= med_lat, x = med_lon, size = location_changes,
+                   alpha = location_changes/max(location_changes)),
+               shape = 21, fill = "limegreen", color = "black", stroke = .2) +
+    scale_size_continuous(range = c(.2,4)) +
+    theme_bw() +
+    guides(alpha =  "none") + ggtitle(paste0("lime", " (unique IDs = ", n_distinct(lime_data$bike_id), ")"))
+  
+)
+
+ggsave('~/Documents/scooters/lime_bird_loc_change_map.png', lime_bird_loc_change_map, width = 14)
 
   # disabled scooters - none? ----
   # reserved scooters ----
