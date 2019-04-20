@@ -1,0 +1,49 @@
+Error in file(file, ifelse(append, "a", "w")) : 
+  cannot open the connection
+Calls: write.csv -> eval.parent -> eval -> eval -> write.table -> file
+In addition: Warning message:
+In file(file, ifelse(append, "a", "w")) :
+  cannot open file '/var/root/Documents/scooters/LA_lime_data/LA_lime_2019-04-18 23_28_00.csv': No such file or directory
+Execution halted
+Error in file(file, ifelse(append, "a", "w")) : 
+  cannot open the connection
+Calls: write.csv -> eval.parent -> eval -> eval -> write.table -> file
+In addition: Warning message:
+In file(file, ifelse(append, "a", "w")) :
+  cannot open file '/Users/janecarlen/Documents/scooters/LA_lime_data/LA_lime_2019-04-18_23_53_01.csv': Permission denied
+Execution halted
+Error in file(file, ifelse(append, "a", "w")) : 
+  cannot open the connection
+Calls: write.csv -> eval.parent -> eval -> eval -> write.table -> file
+In addition: Warning message:
+In file(file, ifelse(append, "a", "w")) :
+  cannot open file '/Users/janecarlen/Documents/scooters/LA_lime_data/LA_lime_2019-04-18_23_54_00.csv': Permission denied
+Execution halted
+Error in file(file, ifelse(append, "a", "w")) : 
+  cannot open the connection
+Calls: write.csv -> eval.parent -> eval -> eval -> write.table -> file
+In addition: Warning message:
+In file(file, ifelse(append, "a", "w")) :
+  cannot open file '/Users/janecarlen/Documents/scooters/LA_lime_data/LA_lime_2019-04-18_23_55_01.csv': Permission denied
+Execution halted
+Error in file(file, ifelse(append, "a", "w")) : 
+  cannot open the connection
+Calls: write.csv -> eval.parent -> eval -> eval -> write.table -> file
+In addition: Warning message:
+In file(file, ifelse(append, "a", "w")) :
+  cannot open file '/Users/janecarlen/Documents/scooters/LA_lime_data/LA_lime_2019-04-18_23_56_01.csv': Permission denied
+Execution halted
+Error in file(file, ifelse(append, "a", "w")) : 
+  cannot open the connection
+Calls: write.csv -> eval.parent -> eval -> eval -> write.table -> file
+In addition: Warning message:
+In file(file, ifelse(append, "a", "w")) :
+  cannot open file '/Users/janecarlen/Documents/scooters/LA_lime_data/LA_lime_2019-04-18_23_57_01.csv': Permission denied
+Execution halted
+Error in file(con, "r") : 
+  cannot open the connection to 'https://lime.bike/api/partners/v1/gbfs/los_angeles/free_bike_status.json'
+Calls: fromJSON -> paste -> readLines -> file
+In addition: Warning message:
+In file(con, "r") :
+  URL 'https://lime.bike/api/partners/v1/gbfs/los_angeles/free_bike_status.json': status was 'Couldn't resolve host name'
+Execution halted
